@@ -51,7 +51,6 @@ def train(config, load_generators, save_generators):
     #######################################################################################################################
     ### Fixed train/val/test ###
     #######################################################################################################################
-    debug = False
     if config.cross_validation == 'fixed':
         
         if config.dataset == 'SZ2':
@@ -60,15 +59,13 @@ def train(config, load_generators, save_generators):
             train_pats_list = train_pats_list[0].to_list()
             train_recs_list = [[s, r.split('_')[-2]] for s in train_pats_list for r in os.listdir(os.path.join(config.data_path, s, 'ses-01', 'eeg')) if 'edf' in r]
 
-            if debug:
-                train_recs_list = [x for x in train_recs_list if 'sub-001' in x[0]]
-
             if load_generators:
                 print('Loading generators...')
-                with open('net/gen_train.pkl', 'rb') as inp:
+                name = config.dataset + '_frame-' + config.frame + '_sampletype-' + config.sample_type
+                with open(os.path.join('net/generators', 'gen_train_' + name + '.pkl'), 'rb') as inp:
                     gen_train = pickle.load(inp)
 
-                with open('net/gen_val.pkl', 'rb') as inp:
+                with open('net/generators/gen_val.pkl', 'rb') as inp:
                     gen_val = pickle.load(inp)
 
             else:
@@ -79,23 +76,24 @@ def train(config, load_generators, save_generators):
                 gen_train = SegmentedGenerator(config, train_recs_list, train_segments, batch_size=config.batch_size, shuffle=True)
 
                 if save_generators:
-                    with open('net/gen_train.pkl', 'wb') as outp:
+                    name = config.dataset + '_frame-' + config.frame + '_sampletype-' + config.sample_type
+                    if not os.path.exists('net/generators'):
+                        os.mkdir('net/generators')
+
+                    with open(os.path.join('net/generators', 'gen_train_' + name + '.pkl'), 'wb') as outp:
                         pickle.dump(gen_train, outp, pickle.HIGHEST_PROTOCOL)
 
                 val_pats_list = pd.read_csv(os.path.join('net', 'datasets', 'SZ2_validation.tsv'), sep = '\t', header = None, skiprows = [0,1,2])
                 val_pats_list = val_pats_list[0].to_list()
                 val_recs_list = [[s, r.split('_')[-2]] for s in val_pats_list for r in os.listdir(os.path.join(config.data_path, s, 'ses-01', 'eeg')) if 'edf' in r]
-
-                if debug:
-                    val_recs_list = val_recs_list[:10]
-
+                
                 val_segments = generate_data_keys_sequential_window(config, val_recs_list, 5*60)
 
                 print('Generating validation segments...')
                 gen_val = SequentialGenerator(config, val_recs_list, val_segments, batch_size=600, shuffle=False)
 
                 if save_generators:
-                    with open('net/gen_val.pkl', 'wb') as outp:
+                    with open('net/generators/gen_val.pkl', 'wb') as outp:
                         pickle.dump(gen_val, outp, pickle.HIGHEST_PROTOCOL)
 
             print('### Training model....')
