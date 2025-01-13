@@ -7,6 +7,7 @@ import h5py
 import pandas as pd
 import pickle
 import numpy as np
+from tqdm import tqdm
 
 import tensorflow as tf
 
@@ -139,9 +140,7 @@ def predict(config):
         from net.EEGnet import net
 
 
-    for rec in test_recs_list:
-        print(rec[0] + ' ' + rec[1])
-
+    for rec in tqdm(test_recs_list):
         if os.path.isfile(os.path.join(config.save_dir, 'predictions', name, rec[0] + '_' + rec[1] + '_preds.h5')):
             print('Exists. Skipping...')
         else:
@@ -170,15 +169,7 @@ def evaluate(config):
 
     name = config.get_name()
 
-    model_path = os.path.join(config.save_dir, 'models', name)
-
     pred_path = os.path.join(config.save_dir, 'predictions', name)
-
-
-    test_pats_list = pd.read_csv(os.path.join('net', 'datasets', config.dataset + '_test.tsv'), sep = '\t', header = None, skiprows = [0,1,2])
-    test_pats_list = test_pats_list[0].to_list()
-    test_recs_list = [[s, r.split('_')[-2]] for s in test_pats_list for r in os.listdir(os.path.join(config.data_path, s, 'ses-01', 'eeg')) if 'edf' in r]
-
     fs = 1
 
     thresholds = list(np.around(np.linspace(0,1,51),2))
@@ -208,9 +199,7 @@ def evaluate(config):
     pred_files = [x for x in os.listdir(pred_path)]
     pred_files.sort()
 
-    for file in pred_files:
-        print(file[:-9])
-
+    for file in tqdm(pred_files):
         with h5py.File(os.path.join(pred_path, file), 'r') as f:
             y_pred = list(f['y_pred'])
             y_true = list(f['y_true'])
@@ -281,9 +270,9 @@ def evaluate(config):
         y_plot = np.interp(x_plot, sens_ovlp_plot_rec[::-1], prec_ovlp_plot_rec[::-1])
         prec_ovlp_plot.append(y_plot)
 
-    score_05 = [x[100] for x in score]
+    score_05 = [x[25] for x in score]
 
-    print('Score: ' + np.nanmean(score_05))
+    print('Score: ' + "%.2f" % np.nanmean(score_05))
 
     with h5py.File(result_file, 'w') as f:
         f.create_dataset('sens_ovlp', data=sens_ovlp)
