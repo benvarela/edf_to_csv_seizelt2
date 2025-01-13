@@ -1,3 +1,4 @@
+import os
 import random
 random_seed = 1
 random.seed(random_seed)
@@ -25,6 +26,8 @@ from net.DL_config import Config
 config = Config()
 config.data_path = '/esat/biomeddata/SeizeIT2/bids'             # path to data
 config.save_dir = 'net/save_dir'                                # save directory of intermediate and output files
+if not os.path.exists(config.save_dir)
+  os.mkdir(config.save_dir)
 config.fs = 250                                                 # Sampling frequency of the data after post-processing
 config.CH = 2                                                   # Nr of EEG channels
 config.cross_validation = 'fixed'                               # validation type
