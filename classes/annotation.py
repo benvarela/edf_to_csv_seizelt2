@@ -1,10 +1,6 @@
 import os
-import json
 from typing import List, Tuple
-
-import numpy as np
 import pandas as pd
-from timescoring.annotations import Annotation as MaskEvents
 
 
 class Annotation:
