@@ -6,11 +6,11 @@ from classes.data import Data
 
 
 class SequentialGenerator(keras.utils.Sequence):
-    ''' Class where the keras sequential data generator is built.
+    ''' Class where a keras sequential data generator is built (the data segments are continuous and aligned in time).
 
     Args:
         config (cls): config object with the experiment parameters
-        rec: list of recordings in the format [sub-xxx, run-xx]
+        recs (list[list[str]]): list of recordings in the format [sub-xxx, run-xx]
         segments: list of keys (each key is a list [1x4] containing the recording index in the rec list,
                   the start and stop of the segment in seconds and the label of the segment)
         batch_size: batch size of the generator
@@ -18,7 +18,7 @@ class SequentialGenerator(keras.utils.Sequence):
     
     '''
 
-    def __init__(self, config, rec, segments, batch_size=32, shuffle=False):
+    def __init__(self, config, recs, segments, batch_size=32, shuffle=False):
         
         'Initialization'
         self.config = config
@@ -30,56 +30,38 @@ class SequentialGenerator(keras.utils.Sequence):
         
         pbar = tqdm(total = len(segments)+1)
 
-        if isinstance(rec[0], list):
-            count = 0
-            prev_rec = int(segments[0][0])
+        count = 0
+        prev_rec = int(segments[0][0])
 
-            rec_data = Data.loadData(config.data_path, rec[prev_rec], modalities=['eeg'])
-            rec_data = apply_preprocess_eeg(config, rec_data)
+        rec_data = Data.loadData(config.data_path, recs[prev_rec], modalities=['eeg'])
+        rec_data = apply_preprocess_eeg(config, rec_data)
+        
+        for s in segments:
+            curr_rec = int(s[0])
             
-            for s in segments:
-                curr_rec = int(s[0])
-                
-                if curr_rec != prev_rec:
-                    rec_data = Data.loadData(config.data_path, rec[curr_rec], modalities=['eeg'])
-                    rec_data = apply_preprocess_eeg(config, rec_data)
-                    prev_rec = curr_rec
+            if curr_rec != prev_rec:
+                rec_data = Data.loadData(config.data_path, recs[curr_rec], modalities=['eeg'])
+                rec_data = apply_preprocess_eeg(config, rec_data)
+                prev_rec = curr_rec
 
-                start_seg = int(s[1]*config.fs)
-                stop_seg = int(s[2]*config.fs)
+            start_seg = int(s[1]*config.fs)
+            stop_seg = int(s[2]*config.fs)
 
-                if stop_seg > len(rec_data[0]):
-                    self.data_segs[count, :, 0] = np.zeros(config.fs*config.frame)
-                    self.data_segs[count, :, 1] = np.zeros(config.fs*config.frame)
-                else:
-                    self.data_segs[count, :, 0] = rec_data[0][start_seg:stop_seg]
-                    self.data_segs[count, :, 1] = rec_data[1][start_seg:stop_seg]
+            if stop_seg > len(rec_data[0]):
+                self.data_segs[count, :, 0] = np.zeros(config.fs*config.frame)
+                self.data_segs[count, :, 1] = np.zeros(config.fs*config.frame)
+            else:
+                self.data_segs[count, :, 0] = rec_data[0][start_seg:stop_seg]
+                self.data_segs[count, :, 1] = rec_data[1][start_seg:stop_seg]
 
-                if s[3] == 1:
-                    self.labels[count, :] = [0, 1]
-                elif s[3] == 0:
-                    self.labels[count, :] = [1, 0]
+            if s[3] == 1:
+                self.labels[count, :] = [0, 1]
+            elif s[3] == 0:
+                self.labels[count, :] = [1, 0]
 
-                count += 1
-                pbar.update(1)
+            count += 1
+            pbar.update(1)
 
-        else:
-            rec_data = Data.loadData(config.data_path, rec, modalities=['eeg'])
-            rec_data = apply_preprocess_eeg(config, rec_data)
-
-            for s in range(len(segments)):
-                start_seg = int(segments[s][1]*config.fs)
-                stop_seg = int(segments[s][2]*config.fs)
-
-                self.data_segs[s, :, 0] = rec_data[0][start_seg:stop_seg]
-                self.data_segs[s, :, 1] = rec_data[1][start_seg:stop_seg]
-
-                if segments[s][3] == 1:
-                    self.labels[s, :] = [0, 1]
-                elif segments[s][3] == 0:
-                    self.labels[s, :] = [1, 0]
-                
-                pbar.update(1)
         
         self.key_array = np.arange(len(self.labels))
 
@@ -99,7 +81,7 @@ class SequentialGenerator(keras.utils.Sequence):
             self.key_array = np.random.permutation(self.key_array)
 
     def __data_generation__(self, keys):
-        if self.config.model == 'DeepCNN' or self.config.model == 'EEGnet':
+        if self.config.model == 'DeepConvNet' or self.config.model == 'EEGnet':
             out = self.data_segs[self.key_array[keys], :, :, np.newaxis].transpose(0,2,1,3), self.labels[self.key_array[keys]]
         else:
             out = self.data_segs[self.key_array[keys], :, :], self.labels[self.key_array[keys]]
@@ -108,11 +90,11 @@ class SequentialGenerator(keras.utils.Sequence):
 
 
 class SegmentedGenerator(keras.utils.Sequence):
-    ''' Class where the keras segmented data generator is built.
+    ''' Class where the keras segmented data generator is built, implemented as a more efficient way to load segments that were subsampled from multiple recordings.
 
     Args:
         config (cls): config object with the experiment parameters
-        files: list of recordings in the format [sub-xxx, run-xx]
+        recs (list[list[str]]): list of recordings in the format [sub-xxx, run-xx]
         segments: list of keys (each key is a list [1x4] containing the recording index in the rec list,
                   the start and stop of the segment in seconds and the label of the segment)
         batch_size: batch size of the generator
@@ -120,7 +102,7 @@ class SegmentedGenerator(keras.utils.Sequence):
     
     '''
 
-    def __init__(self, config, files, segments, batch_size=32, shuffle=True):
+    def __init__(self, config, recs, segments, batch_size=32, shuffle=True):
         
         'Initialization'
         self.config = config
@@ -139,7 +121,7 @@ class SegmentedGenerator(keras.utils.Sequence):
             curr_rec = int(segs_to_load[0][0])
             comm_recs = [i for i, x in enumerate(segs_to_load) if x[0] == curr_rec]
 
-            rec_data = Data.loadData(config.data_path, files[curr_rec], modalities=['eeg'])
+            rec_data = Data.loadData(config.data_path, recs[curr_rec], modalities=['eeg'])
             rec_data = apply_preprocess_eeg(config, rec_data)
 
             for r in comm_recs:
@@ -184,4 +166,5 @@ class SegmentedGenerator(keras.utils.Sequence):
         return out
 
 
+    
     
