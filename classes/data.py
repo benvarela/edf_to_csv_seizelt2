@@ -14,7 +14,7 @@ class Data:
         """Initiate an EEG instance
 
         Args:
-            data (List(NDArray[Shape['*, *'], float])): a list of data arrays. Each channel's data is stored as an entry in the list as a data array. For each entry, the rows are channels, columns are samples in time.
+            data (List(NDArray[Shape['1, *'], float])): a list of data arrays. Each channel's data is stored as an entry in the list as a data array that stores the samples in time.
             channels (tuple[str]): tuple of channels as strings.
             fs (tuple[int]): Sampling frequency of each channel.
         """
