@@ -37,7 +37,7 @@ class Config():
         self.save_dir = save_dir
         self.fs = fs
         self.CH = CH
-        self.frame = frame # window size of the input segments in samples
+        self.frame = frame
         self.stride = stride
         self.stride_s = stride_s
         self.boundary = boundary
