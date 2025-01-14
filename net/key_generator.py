@@ -5,7 +5,15 @@ from classes.annotation import Annotation
 
 
 def generate_data_keys_sequential(config, recs_list):
+    """Create data segment keys in a sequential time manner. The keys are 4 element lists corresponding to the file index in the 'recs_list', the start and stop in seconds of the segment and it's label.
 
+        Args:
+            config (cls): config object with the experiment's parameters.
+            recs_list (list[list[str]]): a list of recording IDs in the format [sub-xxx, run-xx]
+        Returns:
+            segments: a list of data segment keys with [recording index, start, stop, label]
+    """
+    
     segments = []
 
     for idx, f in tqdm(enumerate(recs_list)):
@@ -87,7 +95,15 @@ def generate_data_keys_sequential(config, recs_list):
 
 
 def generate_data_keys_sequential_window(config, recs_list, t_add):
+    """Create data segment keys in a sequential time manner with a window of 2*t_add (where t_add is in seconds). Specific key generator for the validation data of the current framework.
 
+        Args:
+            config (cls): config object with the experiment's parameters.
+            recs_list (list[list[str]]): a list of recording IDs in the format [sub-xxx, run-xx]
+            t_add: time to add before and after the center time point of the event.
+        Returns:
+            segments: a list of data segment keys with [recording index, start, stop, label]
+    """
     segments = []
 
     for idx, f in tqdm(enumerate(recs_list)):
@@ -247,7 +263,15 @@ def generate_data_keys_sequential_window(config, recs_list, t_add):
 
 
 def generate_data_keys_subsample(config, recs_list):
+    """Create data segment keys by subsampling the data, including all seizure segments (Ns) and config.factor*Ns non-seizure segments.
 
+        Args:
+            config (cls): config object with the experiment's parameters.
+            recs_list (list[list[str]]): a list of recording IDs in the format [sub-xxx, run-xx]
+        Returns:
+            segments: a list of data segment keys with [recording index, start, stop, label]
+    """
+    
     segments_S = []
     segments_NS = []
 
@@ -262,13 +286,11 @@ def generate_data_keys_subsample(config, recs_list):
             segments_NS.extend(np.column_stack(([idx]*n_segs, seg_start, seg_stop, np.zeros(n_segs))))
         else:
             for e, ev in enumerate(annotations.events):
-                # n_segs = int(np.floor((ev[1] - ev[0])/config.stride_s)-1)
-                n_segs = int(((ev[1]-config.frame*config.boundary+config.stride_s)-(ev[0]-config.frame*config.boundary))/config.stride_s)
-                seg_start = np.arange(0, n_segs)*config.stride_s + ev[0]-config.frame*config.boundary
+                n_segs = int(((ev[1]+config.frame*(1-config.boundary))-(ev[0]-config.frame*(1-config.boundary))-config.frame)/config.stride_s)
+                seg_start = np.arange(0, n_segs)*config.stride_s + ev[0]-config.frame*(1-config.boundary)
                 seg_stop = seg_start + config.frame
                 segments_S.extend(np.column_stack(([idx]*n_segs, seg_start, seg_stop, np.ones(n_segs))))
 
-            # for e, ev in enumerate(annotations.events):
                 if e == 0:
                     n_segs = int(np.floor((ev[0])/config.stride)-1)
                     seg_start = np.arange(0, n_segs)*config.stride
