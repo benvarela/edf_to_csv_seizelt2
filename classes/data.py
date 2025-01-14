@@ -63,13 +63,3 @@ class Data:
             channels,
             samplingFrequencies,
         )
-
-    def resample(self, newFs: int):
-        """Resample data to a new sampling frequency.
-
-        Args:
-            newFs (int): new sampling frequency in Hz.
-        """
-        self.data = resampy.resample(self.data, self.fs, newFs)
-        self.fs = newFs
-
