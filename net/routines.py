@@ -96,7 +96,7 @@ def predict_net(generator, model_weights_path, model):
     Args:
         generator: a keras data generator containing the data to predict
         model_weights_path: path to the folder containing the models' weights
-        config: configuration object containing all parameters
+        model: keras model object
 
     Returns:
         y_pred: array with the probability of seizure occurences (0 to 1) of each consecutive
