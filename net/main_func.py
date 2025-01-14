@@ -170,7 +170,7 @@ def evaluate(config):
     name = config.get_name()
 
     pred_path = os.path.join(config.save_dir, 'predictions', name)
-    fs = 1
+    pred_fs = 1
 
     thresholds = list(np.around(np.linspace(0,1,51),2))
 
@@ -234,7 +234,7 @@ def evaluate(config):
         y_pred = np.where(np.array(rmsa) == 0, 0, y_pred)
 
         for th in thresholds:
-            sens_ovlp_rec, prec_ovlp_rec, FA_ovlp_rec, f1_ovlp_rec, sens_epoch_rec, spec_epoch_rec, prec_epoch_rec, FA_epoch_rec, f1_epoch_rec = get_metrics_scoring(y_pred, y_true, fs, th)
+            sens_ovlp_rec, prec_ovlp_rec, FA_ovlp_rec, f1_ovlp_rec, sens_epoch_rec, spec_epoch_rec, prec_epoch_rec, FA_epoch_rec, f1_epoch_rec = get_metrics_scoring(y_pred, y_true, pred_fs, th)
 
             sens_ovlp_th.append(sens_ovlp_rec)
             prec_ovlp_th.append(prec_ovlp_rec)
