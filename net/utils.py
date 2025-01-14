@@ -112,7 +112,6 @@ def weighted_binary_crossentropy_adapt(y_true, y_pred):
 
 
 def decay_schedule(epoch, lr):
-    # decay by 0.1 every 5 epochs; use `% 1` to decay after each epoch
     if lr > 1e-5:
         if (epoch + 1) % 10 == 0:
             lr = lr / 2
@@ -164,7 +163,7 @@ def score(y_true, y_pred):
     sens = sens_ovlp(y_true, y_pred)
     fa_epoch = K.sum(K.clip(K.round(y_pred[:, 1])-y_true[:, 1], 0, 1))
     fa_rate = tf.cast(fa_epoch, 'float64')/tf.cast(tf.shape(y_true)[0], 'float64')
-    return sens*tf.constant(100, dtype='float64')-tf.constant(60, dtype='float64')*fa_rate
+    return sens*tf.constant(100, dtype='float64')-tf.constant(0.4, dtype='float64')*fa_rate
 
 
 def perf_measure_ovlp_tensor(y_true, y_pred):
@@ -333,10 +332,10 @@ def get_events(events, margin):
     Returns:
         ev_list: list of events times in seconds after merging and discarding short events.
     '''
-    events_merge = merge_events(events, margin)
+    events_merge = merge_events(events, 0.2*margin)
     ev_list = []
     for i in range(len(events_merge)):
-        if events_merge[i][1] - events_merge[i][0] >= margin*0.5:
+        if events_merge[i][1] - events_merge[i][0] >= margin*0.8:
             ev_list.append(events_merge[i])
 
     return ev_list
@@ -459,8 +458,8 @@ def get_metrics_scoring(y_pred, y_true, fs, th):
     total_N = len(y_pred)*(1/fs)
     total_seiz = np.sum(y_true)
 
-    # Post process predictions (merge predicted events separated by 1 second and discard events smaller than 2 seconds)
-    y_pred = post_processing(y_pred, fs=fs, th=th, margin=2)
+    # Post process predictions (merge predicted events separated by 2 second and discard events smaller than 8 seconds)
+    y_pred = post_processing(y_pred, fs=fs, th=th, margin=10)
 
     TP_epoch, FP_epoch, TN_epoch, FN_epoch = perf_measure_epoch(y_true, y_pred)
 
