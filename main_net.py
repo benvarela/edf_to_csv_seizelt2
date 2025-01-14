@@ -20,13 +20,12 @@ from net.DL_config import Config
 ###########################################
 ## Initialize standard config parameters ##
 ###########################################
-## SD (wearable EEG) montage:
 
 ## Configuration for the generator and models:
 config = Config()
 config.data_path = '/esat/biomeddata/SeizeIT2/bids'             # path to data
 config.save_dir = 'net/save_dir'                                # save directory of intermediate and output files
-if not os.path.exists(config.save_dir)
+if not os.path.exists(config.save_dir):
   os.mkdir(config.save_dir)
 config.fs = 250                                                 # Sampling frequency of the data after post-processing
 config.CH = 2                                                   # Nr of EEG channels
@@ -51,7 +50,7 @@ config.lr = 0.01
 config.model = 'ChronoNet'                                      # model architecture (you have 3: Chrononet, EEGnet, DeepConvNet)
 config.dataset = 'SZ2'                                          # patients to use (check 'datasets' folder)
 config.sample_type = 'subsample'                                # sampling method (subsample = remove background EEG segments)
-config.add_to_name = 'test'
+config.add_to_name = 'test'                                     # str to add to the end of the experiment's config name
 
 ###########################################
 ###########################################
