@@ -3,7 +3,6 @@ from tensorflow.keras import backend as K
 from sklearn.metrics import roc_auc_score
 import numpy as np
 from scipy import signal
-import pandas as pd
 
 
 def set_gpu():
