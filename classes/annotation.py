@@ -38,7 +38,7 @@ class Annotation:
     def loadAnnotation(
         cls,
         annotation_path: str,
-        recording: list[str],
+        recording: List[str],
     ):
         szEvents = list()
         szTypes = list()
