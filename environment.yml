@@ -1,0 +1,11 @@
+channels:
+  - conda-forge
+  - https://repo.anaconda.com/pkgs/main
+  - https://repo.anaconda.com/pkgs/r
+dependencies:
+  - python=3.10
+  - conda-forge::tensorflow-gpu==2.10
+  - pandas
+  - tqdm
+  - scikit-learn
+  - pyedflib
