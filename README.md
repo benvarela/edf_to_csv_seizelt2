@@ -10,8 +10,8 @@ Script to train and evaluate the ChronoNet model with all parameters as in the p
 
 ## Conda environment setup
 The python packages (and corresponding versions) used in the development of the scripts in this repository are gathered in 'environmnet.yml'. To easily create a conda environment with the same package versions, follow the instructions below:
-'''
+```
 conda config --add channels conda-forge
 conda config --set channel_priority strict
 conda create -n ENV_NAME -f environment.yml
-'''
+```
