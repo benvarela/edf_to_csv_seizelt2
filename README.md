@@ -13,5 +13,5 @@ The python packages (and corresponding versions) used in the development of the 
 ```
 conda config --add channels conda-forge
 conda config --set channel_priority strict
-conda create -n ENV_NAME -f environment.yml
+conda env create -n ENV_NAME -f environment.yml
 ```
