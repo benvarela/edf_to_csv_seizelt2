@@ -148,7 +148,7 @@ def predict(config):
             with tf.device('/cpu:0'):
                 segments = generate_data_keys_sequential(config, [rec])
 
-                gen_test = SequentialGenerator(config, rec, segments, batch_size=len(segments), shuffle=False)
+                gen_test = SequentialGenerator(config, [rec], segments, batch_size=len(segments), shuffle=False)
 
                 model = net(config)
 
