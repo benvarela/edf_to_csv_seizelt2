@@ -139,16 +139,15 @@ def predict(config):
     elif config.model == 'EEGnet':
         from net.EEGnet import net
 
-
     for rec in tqdm(test_recs_list):
         if os.path.isfile(os.path.join(config.save_dir, 'predictions', name, rec[0] + '_' + rec[1] + '_preds.h5')):
-            print('Exists. Skipping...')
+            print(rec[0] + ' ' + rec[1] + ' exists. Skipping...')
         else:
             
             with tf.device('/cpu:0'):
-                segments = generate_data_keys_sequential(config, [rec])
+                segments = generate_data_keys_sequential(config, [rec], verbose=False)
 
-                gen_test = SequentialGenerator(config, [rec], segments, batch_size=len(segments), shuffle=False)
+                gen_test = SequentialGenerator(config, [rec], segments, batch_size=len(segments), shuffle=False, verbose=False)
 
                 model = net(config)
 

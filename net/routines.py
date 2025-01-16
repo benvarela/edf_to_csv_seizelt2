@@ -114,7 +114,7 @@ def predict_net(generator, model_weights_path, model):
         y_aux.append(y)
     true_labels = np.vstack(y_aux)
 
-    prediction = model.predict(generator)
+    prediction = model.predict(generator, verbose=0)
 
     y_pred = np.empty(len(prediction), dtype='float32')
     for j in range(len(y_pred)):
