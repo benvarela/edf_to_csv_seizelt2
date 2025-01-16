@@ -18,7 +18,7 @@ class SequentialGenerator(keras.utils.Sequence):
     
     '''
 
-    def __init__(self, config, recs, segments, batch_size=32, shuffle=False):
+    def __init__(self, config, recs, segments, batch_size=32, shuffle=False, verbose=True):
         
         'Initialization'
         self.config = config
@@ -27,8 +27,9 @@ class SequentialGenerator(keras.utils.Sequence):
 
         self.data_segs = np.empty(shape=[len(segments), int(config.frame*config.fs), config.CH])
         self.labels = np.empty(shape=[len(segments), 2])
+        self.verbose = verbose
         
-        pbar = tqdm(total = len(segments)+1)
+        pbar = tqdm(total = len(segments)+1, disable = not self.verbose)
 
         count = 0
         prev_rec = int(segments[0][0])
@@ -102,18 +103,19 @@ class SegmentedGenerator(keras.utils.Sequence):
     
     '''
 
-    def __init__(self, config, recs, segments, batch_size=32, shuffle=True):
+    def __init__(self, config, recs, segments, batch_size=32, shuffle=True, verbose=True):
         
         'Initialization'
         self.config = config
         self.batch_size = batch_size
         self.shuffle = shuffle
+        self.verbose = verbose
 
         self.data_segs = np.empty(shape=[len(segments), int(config.frame*config.fs), config.CH])
         self.labels = np.empty(shape=[len(segments), 2])
         segs_to_load = segments
 
-        pbar = tqdm(total = len(segs_to_load)+1)
+        pbar = tqdm(total = len(segs_to_load)+1, disable=self.verbose)
         count = 0
 
         while segs_to_load:

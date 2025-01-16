@@ -4,7 +4,7 @@ from tqdm import tqdm
 from classes.annotation import Annotation
 
 
-def generate_data_keys_sequential(config, recs_list):
+def generate_data_keys_sequential(config, recs_list, verbose=True):
     """Create data segment keys in a sequential time manner. The keys are 4 element lists corresponding to the file index in the 'recs_list', the start and stop in seconds of the segment and it's label.
 
         Args:
@@ -16,7 +16,7 @@ def generate_data_keys_sequential(config, recs_list):
     
     segments = []
 
-    for idx, f in tqdm(enumerate(recs_list)):
+    for idx, f in tqdm(enumerate(recs_list), disable = not verbose):
         annotations = Annotation.loadAnnotation(config.data_path, f)
 
         if not annotations.events:
