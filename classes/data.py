@@ -10,7 +10,7 @@ class Data:
         channels: tuple[str],
         fs: tuple[int],
     ):
-        """Initiate an EEG instance
+        """Initiate a Data instance
 
         Args:
             data (List(NDArray[Shape['1, *'], float])): a list of data arrays. Each channel's data is stored as an entry in the list as a data array that stores the samples in time.
