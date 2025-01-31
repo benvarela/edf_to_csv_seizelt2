@@ -47,16 +47,19 @@ class Data:
             if os.path.exists(os.path.join(data_path, recording[0], 'ses-01', mod)):
                 edfFile = os.path.join(data_path, recording[0], 'ses-01', mod, '_'.join([recording[0], 'ses-01', 'task-szMonitoring', recording[1], mod + '.edf']))
                 
-                with pyedflib.EdfReader(edfFile) as edf:
-                    samplingFrequencies.extend(edf.getSampleFrequencies())
-                    channels.extend(edf.getSignalLabels())
-                    n = edf.signals_in_file
-                    for i in range(n):
-                        data.append(edf.readSignal(i))
-                    edf._close()
+                if os.path.exists(edfFile):
+                    with pyedflib.EdfReader(edfFile) as edf:
+                        samplingFrequencies.extend(edf.getSampleFrequencies())
+                        channels.extend(edf.getSignalLabels())
+                        n = edf.signals_in_file
+                        for i in range(n):
+                            data.append(edf.readSignal(i))
+                        edf._close()
+                else:
+                    warnings.warn('Recording ' + recording[0] + ' ' + recording[1] + ' does not contain ' + mod + ' data!')
             else:
-                warnings.warn('Recording ' + recording[0] + '_' + recording[1] + ' does not contain ' + mod + ' data!')
-
+                warnings.warn('Subject ' + recording[0] + ' does not contain ' + mod + ' data!')
+                
         return cls(
             data,
             channels,
