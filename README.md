@@ -1,6 +1,6 @@
 # README
 
-This repository contains an example of the code to load the [SeizeIT2 dataset](https://openneuro.org/datasets/ds005873/versions/1.0.0) and to train the model included in the [dataset paper]().
+This repository contains an example of the code to load the [SeizeIT2 dataset](https://openneuro.org/datasets/ds005873/versions/1.0.0) and to train the model included in the [dataset paper](https://arxiv.org/abs/2502.01224).
 
 # loader_test.py
 Script with an example for loading files from the dataset. The classes classes.data and classes.annotation are used to create a data object, containing the signal data and extra information,  and an annotation object, containing all information regarding the seizure events of the recording.
