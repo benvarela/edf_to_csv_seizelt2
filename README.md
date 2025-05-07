@@ -1,17 +1,15 @@
 # README
 
-This repository contains an example of the code to load the [SeizeIT2 dataset](https://openneuro.org/datasets/ds005873) and to train the model included in the [dataset paper](https://arxiv.org/abs/2502.01224).
+This repository is a branch of the Github used to process all imaging modalities included in the [SeizeIT2 dataset](https://openneuro.org/datasets/ds005873) ([link]  https://github.com/biomedepi/seizeit2).
 
-# loader_test.py
-Script with an example for loading files from the dataset. The classes classes.data and classes.annotation are used to create a data object, containing the signal data and extra information,  and an annotation object, containing all information regarding the seizure events of the recording.
+"main.py" is a modified version of the originally named loader_test.py, designed to instead use all the .edf files to construct a single .csv file. This file uses the classes stored in 'classes', which have remained unmodified.
 
-# main_net.py
-Script to train and evaluate the ChronoNet model with all parameters as in the paper. This is a suggestion of a framework that uses the data loaders and a Keras implementation of the training and evaluation routines. The data generators are likely to take a long time to run (arround 3 hours), hence the option to save the training and validation generators and load them in future runs.
+# CSV Output
 
-## Conda environment setup
-The python packages (and corresponding versions) used in the development of the scripts in this repository are gathered in 'environment.yml'. To easily create a conda environment with the same package versions to run the code, follow the instructions below:
-```
-conda config --add channels conda-forge
-conda config --set channel_priority strict
-conda env create -n ENV_NAME -f environment.yml
-```
+This csv file will have the following columns the full length of recording duration:
+    EEG: contains the bte-EEG readings from the cross brain channel for all participants
+    Seizure: contains 0 where a seizure is not ocurring, and 1 where a seizure it occurring
+
+# Dependencies
+
+The dependencies have also been modified, and are available in requirements.txt
