@@ -3,3 +3,4 @@ numpy
 gzip
 pyedflib
 PyWavelets
+scipy
