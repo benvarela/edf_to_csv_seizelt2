@@ -1,6 +1,6 @@
 # README
 
-This repository is a branch of the Github used to process all imaging modalities included in the [SeizeIT2 dataset](https://openneuro.org/datasets/ds005873) ([link]https://github.com/biomedepi/seizeit2).
+This repository is a branch of the Github used to process all imaging modalities included in the [SeizeIT2 dataset](https://openneuro.org/datasets/ds005873) ([link](https://github.com/biomedepi/seizeit2)).
 
 "main.py" is a modified version of the originally named loader_test.py, designed to instead use all the .edf files to construct a single .csv file. This file uses the classes stored in 'classes', which have remained unmodified.
 
