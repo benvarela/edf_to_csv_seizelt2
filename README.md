@@ -7,7 +7,7 @@ This repository is a branch of the Github used to process all imaging modalities
 # CSV Output
 
 This csv file will have the following columns the full length of recording duration:
-* EEG: contains the bte-EEG readings from the cross brain channel for all participants
+* EEG: contains the bte-EEG readings from the same side brain channel for all participants
 * time(s): the time of the recording 
 * seizure: contains 0 where a seizure is not ocurring, and 1 where a seizure it occurring
 
