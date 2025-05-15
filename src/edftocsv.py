@@ -1,3 +1,7 @@
+'''
+This file takes the raw SeizelT2 dataset and outputs the channel that were interested in in compressed csv files
+'''
+
 from importlib import resources as impresources
 from pathlib import Path
 from classes.data import Data
