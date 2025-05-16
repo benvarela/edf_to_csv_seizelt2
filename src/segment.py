@@ -1,6 +1,9 @@
 '''
 This file outputs the indexes where new runs start, as concatenated in the compressed csv files that are output by edftocsv
-The output csv is to be used after filtering, and before feature extraction so that segmenting can occur correctly.
+The output json file is to be used after filtering, and before feature extraction so that segmenting can occur correctly.
+
+The json file has the same structure as the variable seg_sub: seg_sub = {'subject': list(), 'run_start_indexes': list()}
+Note that the 'run_start_indexes' are stored in such a way that each index is the index immediately after a run ends, INCLUDING the final run
 '''
 
 from importlib import resources as impresources
@@ -9,6 +12,7 @@ import pandas as pd
 from pathlib import Path
 from classes.data import Data
 from classes.annotation import Annotation
+import json
 
 # Insert your path to the dataset here
 path_to_dataset = '../Dataset/'
@@ -47,7 +51,8 @@ for sub in np.array(range(SUBJECTS)) + 1:
 
     # Add to the seg_sub dictionary
     seg_sub['subject'].append(sub_str)
-    seg_sub['run_start_indexes'].append(np_dur * 256)
+    seg_sub['run_start_indexes'].append(list(np_dur * 256))
 
-#Output as csv
-pd.DataFrame(seg_sub).to_csv('segments.csv')
+#Output as json
+with open('json/segments.json', 'w') as j:
+    json.dump(seg_sub, j)

@@ -4,3 +4,4 @@ gzip
 pyedflib
 PyWavelets
 scipy
+json

@@ -1,5 +1,6 @@
 csvs/Data
-tester.py
+src/tester.py
 classes/__pycache__
 .DS_Store
 src/__pycache__
+tester2.py
