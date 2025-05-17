@@ -89,48 +89,67 @@ def entropy(band: np.ndarray):
 
 def run_features(run_segmented: list) -> pd.DataFrame:
     '''
-    Extracts the features from each segment and stores them in a dataframe. There are twelve features extracted per segment, the mean, stdev, skew, kurtosis, energy and entropy
-    of the alpha and beta bands of a discrete wavelet decomposition of each segment of data.
+    Extracts features from each segment using wavelet decomposition with weighted node combination
+    to precisely isolate alpha (8-13Hz) and beta (13-32Hz) bands. Returns a DataFrame with
+    12 features per segment (mean, stdev, skew, kurtosis, energy, entropy for each band).
 
-    INPUTS: run_segmented: list contains the following format of data [[label: 0 or 1, segment: np.ndarray], other segments...]
-    OUTPUTS: df_features: pd.DataFrame that contains a row for each segment, and a column for each of the features extracted from the alpha and beta bands of the decomposition
-    '''
-    # Initialise the list, which stores the feature row lists extracted from each segment
-    features = list()
+    INPUTS: 
+        run_segmented: list of segments in format [[label: 0 or 1, segment: np.ndarray], ...]
     
-    # Loop over all of the segments:
+    OUTPUTS: 
+        pd.DataFrame with features and labels (one row per segment)
+    '''
+    # Initialize feature storage
+    features = []
+    
     for segment in run_segmented:
         label, smooth_run = segment[0], segment[1]
 
-        # Initialise target wavelet bands for the wavelet decomposition
-        alpha_wavelets = ['aaada']                                  # 8-12Hz
-        beta_wavelets = ['aaadd', 'aadaa', 'aadad', 'aadda']        # 12-16, 16-20, 20-24, 24-28Hz
-
-        # Perform wavelet decomposition, with error catching
         try:
+            # Perform wavelet decomposition
             wp = WaveletPacket(data=smooth_run, wavelet='db8', mode='symmetric', maxlevel=5)
+            
+            # Reconstruct bands with weighted node combination
+            # Alpha (8-13Hz) = aaada (8-12Hz) + 25% of aaadd (12-16Hz)
+            alpha_full = wp['aaada'].data
+            alpha_partial = 0.25 * wp['aaadd'].data
+            alpha_signal = alpha_full + alpha_partial
+            
+            # Beta (13-32Hz) = 75% of aaadd (13-16Hz) + aadaa (16-20Hz) + aadad (20-24Hz) + aadda (24-28Hz)
+            beta_partial = 0.75 * wp['aaadd'].data
+            beta_signal = (beta_partial + wp['aadaa'].data + wp['aadad'].data + wp['aadda'].data)
+
+            # Extract features 
+            feature_row = [
+                # Alpha features
+                np.mean(alpha_signal), np.std(alpha_signal), 
+                skew(alpha_signal), kurtosis(alpha_signal),
+                np.sum(alpha_signal ** 2), entropy(alpha_signal),
+                
+                # Beta features
+                np.mean(beta_signal), np.std(beta_signal),
+                skew(beta_signal), kurtosis(beta_signal),
+                np.sum(beta_signal ** 2), entropy(beta_signal),
+                
+                # Seizure label
+                label
+            ]
+
+            features.append(feature_row)
+            
         except Exception as e:
-            print(f"Skipping segment due to wavelet error: {e}")
+            print(f"Skipping segment (length={len(smooth_run)}): {e}")
             continue
-        
-        # Reconstruct alpha and beta bands from component wavelet decompositions
-        alpha_signal = sum(wp[node].data for node in alpha_wavelets)
-        beta_signal = sum(wp[node].data for node in beta_wavelets)
 
-        # Extract features 
-        feature_row = [
-            np.mean(alpha_signal), np.std(alpha_signal), skew(alpha_signal), kurtosis(alpha_signal), np.sum(alpha_signal ** 2), entropy(alpha_signal),
-            np.mean(beta_signal), np.std(beta_signal), skew(beta_signal), kurtosis(beta_signal), np.sum(beta_signal ** 2), entropy(beta_signal),
-            label
-        ]
-
-        features.append(feature_row)
-
-    df_features = pd.DataFrame(features, columns = ['alpha_mean', 'alpha_stdev', 'alpha_skew', 'alpha_kurtosis', 'alpha_energy', 'alpha_entropy',
-                                                    'beta_mean', 'beta_stdev', 'beta_skew', 'beta_kurtosis', 'beta_energy', 'beta_entropy',
-                                                    'label'])
-    
-    return df_features
+    # Convert to DataFrame
+    columns = [
+        'alpha_mean', 'alpha_stdev', 'alpha_skew', 'alpha_kurtosis', 
+        'alpha_energy', 'alpha_entropy',
+        'beta_mean', 'beta_stdev', 'beta_skew', 'beta_kurtosis', 
+        'beta_energy', 'beta_entropy',
+        'label'
+    ]
+    return pd.DataFrame(features, columns=columns)
 
 def export_csv(df_features: pd.DataFrame, sub: str):
     df_features.to_csv(f'csvs/features/{sub}.csv.gz', index=False, compression='gzip')
@@ -158,11 +177,11 @@ def feature(path_to_csvs: str):
 
         # Process each run, with smoothing, segmentation and feature extraction
         for run_index in run_indexes:
-            t1 = time()
+            t1 = process_time()
             run_smooth, sz_slice = smooth_run(run_index, eeg, sz)
             run_segmented = segment_run(run_smooth, sz_slice)
             df_features = run_features(run_segmented)
-            t2 = time()
+            t2 = process_time()
 
             # Output as a compressed csv for storage
             export_csv(df_features, sub)
