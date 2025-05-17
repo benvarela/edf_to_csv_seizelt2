@@ -12,6 +12,7 @@ def main(ft: bool, pt: str) -> None:
     '''
     if ft:
         time = f.feature(pt)
+        print(f'{time} s to complete feature extraction')
 
 if __name__ == "__main__":
     main(EXTRACT_FEATURES,
