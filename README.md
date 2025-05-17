@@ -7,8 +7,7 @@ This repository is a branch of the [Github](https://github.com/biomedepi/seizeit
 # CSV Output
 
 This csv file will have the following columns the full length of recording duration:
-* EEG: contains the bte-EEG readings from the same side brain channel for all participants
-* time(s): the time of the recording 
+* EEG: contains the bte-EEG readings from the same side brain channel for all participants. 256Hz was the sampling frequency.
 * seizure: contains 0 where a seizure is not ocurring, and 1 where a seizure it occurring
 
 # Dependencies

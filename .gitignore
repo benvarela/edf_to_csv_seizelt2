@@ -1,4 +1,4 @@
-csvs/Data
+csvs
 src/tester.py
 classes/__pycache__
 .DS_Store

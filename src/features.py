@@ -1,48 +1,174 @@
+'''
+This file facillitates the data smoothing, segmentation, and finally feature extraction required to output a csv of features for all of the subject's eeg data.
+'''
+
+from time import process_time
+from pathlib import Path
 import pandas as pd
 import numpy as np
-from src.get_features import get_features
+import json
+from scipy.signal import savgol_filter
+from pywt import WaveletPacket
+from scipy.stats import skew, kurtosis
+import gzip
 
-def subjects_feature(path: str) -> pd.DataFrame:
-    """returns features over the entire sample space
 
-    Args:
-        path (str): path to subject EEG 
+def process_run_indexes(run_ends: list) -> list:
+    '''
+    Breifly preprocess run indexes, so the start and end index of runs is output in a list, as oppoosed to just the end indexes
+    Note that these indexes are prepared to work immediately with slice notation; +1/-1 business has already been thought of and accounted for
+
+    INPUT: run_ends: list of all the indexes for when a run ends
+    OUTPUT: out: list containing lists of [i_start, i_end] for each run
+    '''
+    # Initialise output list, length and negative indexes to iterate over
+    out = list()
+    for i in range(len(run_ends)):
+        # Add the start and end indexes sequentially to the new output list
+        if i == 0:
+            out.append([0, run_ends[i]])
+        else:
+            out.append([run_ends[i-1], run_ends[i]])
+    return out
+
+
+def smooth_run(run_index: list, eeg: np.ndarray, sz: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    '''
+    This function applies a Savitzky-Golay filter with N = 22, M = 35 to a run sliced from the concatenated eeg runs for a subject
+
+    INPUTS - run_index: list contains the start and end indexes of the run, eeg: np.ndarray contains the full eeg data run for a patiet, sz: np.ndarray contains the seizure labels for each time point
+    OUTPUTS - run_smooth: np.ndarray the smoothed slice cut out from full patient eeg data
+    '''
+    # Cut the run out, and the labels out
+    run_slice = eeg[run_index[0]:run_index[1]]
+    sz_slice = sz[run_index[0]:run_index[1]]
+
+    # Smooth the slice with the SG (22, 35) filter
+    run_smooth = savgol_filter(run_slice, window_length=35, polyorder=22)
+    
+    return run_smooth, sz_slice
+
+def segment_run(run_smooth: np.ndarray, sz_slice: np.ndarray) -> list:
+    '''
+    Segments the run into 1 second, 50% overlap chunks. Exclusion of segments that overlap a seizure and a non-seizure region.
+
+    INPUT: run_smooth: np.ndarray the smoothed run to be segmented, sz: np.ndarray the seizure labels associated with each eeg value
+    OUTPUT: run_segmented - list in format [[label: 0 or 1, segment: np.ndarray], other segments...]
+    '''
+    length = run_smooth.shape[0]
+    start = 0
+    end = 256   
+    run_segmented = list()
+    
+    while end <= length:
+        segment = run_smooth[start:end]
+        start_label, end_label = sz_slice[start], sz_slice[end-1]
+        if start_label == end_label:
+            run_segmented.append([start_label, segment])
+        start += 128
+        end += 128
+
+    return run_segmented
+
+def entropy(band: np.ndarray):
+    '''
+    Returns the entropy of an array from a frequency band that has undergone wavelet decomposition
+    
+    Parameters:
+        band (np.ndarray): input wavelet band
 
     Returns:
-        pd.DataFrame:  dataframe inlcuding whether a seizure occurred and features at that time
-    """
-    df = pd.read_csv(path, compression = 'gzip')
-    eeg =  df["EEG"].to_numpy()
-    seizure = df["seizure"].to_numpy()
-    threshold = 25                      ## amount of samples in each second that have to be true for seizure to be true
+        entropy: shannon entropy of the input wavelet band
+    '''
+    band_sq  = band ** 2
+    energy = np.sum(band_sq)
+    prob = band_sq / energy
+    prob = prob[prob > 0]
+    entropy = -np.sum(prob * np.log2(prob))
+    return entropy
 
-    N = len(eeg)
-    rows = N // 256
-    if N % 256 > 0:
-        eeg = eeg[0 : N - N % 256]
-    eeg = np.reshape(eeg, (rows, 256))
+def run_features(run_segmented: list) -> pd.DataFrame:
+    '''
+    Extracts the features from each segment and stores them in a dataframe. There are twelve features extracted per segment, the mean, stdev, skew, kurtosis, energy and entropy
+    of the alpha and beta bands of a discrete wavelet decomposition of each segment of data.
 
-    variable = np.zeros(shape=(rows,1))
-    features = np.zeros(shape=(rows, 14))
-
-    cols = ['Seizure', 'Mean', 'Variance', 'Kurtosis', 'Skew', 'EnergyA', 'EnergyD5', 'EnergyD4', 'EnergyD3',
-                           'EnergyD2', 'EntopryA', 'EntropyD5', 'EntropyD4', 'EntropyD3', 'EntropyD2']
-
-    df_subject = pd.DataFrame(index=list(range(rows)), columns=cols)
+    INPUTS: run_segmented: list contains the following format of data [[label: 0 or 1, segment: np.ndarray], other segments...]
+    OUTPUTS: df_features: pd.DataFrame that contains a row for each segment, and a column for each of the features extracted from the alpha and beta bands of the decomposition
+    '''
+    # Initialise the list, which stores the feature row lists extracted from each segment
+    features = list()
     
-    for j in range(rows):
-        variable[j] = threshold > sum(seizure[ j * 256 :( j + 1 ) * 256])
-        features[j,:] = get_features(eeg[j,:])
+    # Loop over all of the segments:
+    for segment in run_segmented:
+        label, smooth_run = segment[0], segment[1]
 
-    df_subject[df_subject.columns[0]] = variable
-    for k in range(1,15):
-        df_subject[df_subject.columns[k]] = features[:,k - 1] 
+        # Initialise target wavelet bands for the wavelet decomposition
+        alpha_wavelets = ['aaada']                                  # 8-12Hz
+        beta_wavelets = ['aaadd', 'aadaa', 'aadad', 'aadda']        # 12-16, 16-20, 20-24, 24-28Hz
 
-    print(df_subject)
-    return df_subject
+        # Perform wavelet decomposition, with error catching
+        try:
+            wp = WaveletPacket(data=smooth_run, wavelet='db8', mode='symmetric', maxlevel=5)
+        except Exception as e:
+            print(f"Skipping segment due to wavelet error: {e}")
+            continue
+        
+        # Reconstruct alpha and beta bands from component wavelet decompositions
+        alpha_signal = sum(wp[node].data for node in alpha_wavelets)
+        beta_signal = sum(wp[node].data for node in beta_wavelets)
 
+        # Extract features 
+        feature_row = [
+            np.mean(alpha_signal), np.std(alpha_signal), skew(alpha_signal), kurtosis(alpha_signal), np.sum(alpha_signal ** 2), entropy(alpha_signal),
+            np.mean(beta_signal), np.std(beta_signal), skew(beta_signal), kurtosis(beta_signal), np.sum(beta_signal ** 2), entropy(beta_signal),
+            label
+        ]
 
+        features.append(feature_row)
+
+    df_features = pd.DataFrame(features, columns = ['alpha_mean', 'alpha_stdev', 'alpha_skew', 'alpha_kurtosis', 'alpha_energy', 'alpha_entropy',
+                                                    'beta_mean', 'beta_stdev', 'beta_skew', 'beta_kurtosis', 'beta_energy', 'beta_entropy',
+                                                    'label'])
     
+    return df_features
 
+def export_csv(df_features: pd.DataFrame, sub: str):
+    df_features.to_csv(f'csvs/features/{sub}.csv.gz', index=False, compression='gzip')
 
-df = subjects_feature('csvs/sub-001.csv.gz')
+def feature(path_to_csvs: str):
+    ## Initialisations
+    # Initialise feature extraction run-time
+    time = 0
+    # Initialise csv paths
+    csvs = [f'{path_to_csvs}/{x}' for x in Path(path_to_csvs).glob("sub*")]
+    # Initialise segmentation indexes, in a dictionary
+    with open('json/segments.json', 'r') as j:
+        segment_indexes = json.load(j)
+
+    # Loop over all subject csvs to extract features from stored EEG data
+    for csv in csvs:
+        # Read data in, numpy arrays
+        df = pd.read_csv(csv, compression = 'gzip')
+        eeg, sz = df['EEG'].to_numpy(), df['seizure'].to_numpy()
+
+        # Determine which subject is being analysed, and their segmentation index list
+        sub = csv.split('/')[1][:7]
+        isub = segment_indexes['subject'].index(sub)
+        run_indexes = process_run_indexes([int(x) for x in segment_indexes['run_start_indexes'][isub]])
+
+        # Process each run, with smoothing, segmentation and feature extraction
+        for run_index in run_indexes:
+            t1 = time()
+            run_smooth, sz_slice = smooth_run(run_index, eeg, sz)
+            run_segmented = segment_run(run_smooth, sz_slice)
+            df_features = run_features(run_segmented)
+            t2 = time()
+
+            # Output as a compressed csv for storage
+            export_csv(df_features, sub)
+            time += t2 - t1
+
+            # log
+            print(f"Processed {sub} run {run_index} in {t2-t1:.2f}s")
+
+    return time

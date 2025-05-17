@@ -31,7 +31,7 @@ def pull_channel_run(EEG_CHANNEL: str, d: Data, a: Annotation, sub_dict: dict, r
         run_sz[istart:iend] = 1
 
     # Add to the sub_dict
-    sub_dict[rec[1]] = np.stack([run_data, run_time, run_sz])
+    sub_dict[rec[1]] = np.stack([run_data, run_sz])
     sub_dict['run_list'].append(rec[1])
     return sub_dict
 
@@ -74,7 +74,7 @@ for sub in np.array(range(SUBJECTS)) + 1:
 
         # Transpose, reduce to float32, and export as compressed .csv.gz
         with gzip.open(f'csvs/{sub_str}.csv.gz', 'wt') as f:
-            np.savetxt(f, all_data.T.astype(np.float32), delimiter=',', header='EEG,time(s),seizure', comments='')
+            np.savetxt(f, all_data.T.astype(np.float32), delimiter=',', header='EEG,seizure', comments='')
 
 ## Useful lines to copy and paste to interface with the classes
 #rec_data = Data.loadData(data_path.as_posix(), rec, modalities=['eeg'])
