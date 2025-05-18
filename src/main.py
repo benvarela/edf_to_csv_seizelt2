@@ -9,6 +9,10 @@ def main(ft: bool, pt: str) -> None:
     '''
     Performs feature extraction, if called. Requires a path to the raw csvs for this to happen. Edit: PATH_TO_CSVS
     Performs machine learning, if called
+
+    Parameters:
+        ft (bool) - Bool of whether to extract features or not
+        pt (str) - path to the csv files containing EEG data to extract features from
     '''
     if ft:
         time = f.feature(pt)

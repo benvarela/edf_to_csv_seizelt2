@@ -159,7 +159,7 @@ def feature(path_to_csvs: str):
     # Initialise feature extraction run-time
     time = 0
     # Initialise csv paths
-    csvs = [f'{path_to_csvs}/{x}' for x in Path(path_to_csvs).glob("sub*")]
+    csvs = [x for x in Path(path_to_csvs).glob("sub*")]
     # Initialise segmentation indexes, in a dictionary
     with open('json/segments.json', 'r') as j:
         segment_indexes = json.load(j)
@@ -171,7 +171,7 @@ def feature(path_to_csvs: str):
         eeg, sz = df['EEG'].to_numpy(), df['seizure'].to_numpy()
 
         # Determine which subject is being analysed, and their segmentation index list
-        sub = csv.split('/')[1][:7]
+        sub = str(csv).split('/')[2][:7]
         isub = segment_indexes['subject'].index(sub)
         run_indexes = process_run_indexes([int(x) for x in segment_indexes['run_start_indexes'][isub]])
 

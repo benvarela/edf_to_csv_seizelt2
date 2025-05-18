@@ -15,6 +15,7 @@ SUBJECTS = 129
 EEG_CHANNEL_1 = 'BTEleft SD'
 EEG_CHANNEL_2 = 'BTEright SD'
 HZ = 256
+START_SUB = 44
 
 # Initialisation of function that extracts data from a single run, once the channel is confirmed and the data is extracted from the .edf
 def pull_channel_run(EEG_CHANNEL: str, d: Data, a: Annotation, sub_dict: dict, rec) -> dict:
@@ -42,39 +43,40 @@ recordings = [[x.name, xx.name.split('_')[-2]] for x in sub_list for xx in (x / 
 
 # Loop over all of the subjects
 for sub in np.array(range(SUBJECTS)) + 1:
-    sub_str = f'sub-{sub:03d}'
-    sub_dict = {'subject': sub_str, 'run_list': []}
+    if sub >= START_SUB:
+        sub_str = f'sub-{sub:03d}'
+        sub_dict = {'subject': sub_str, 'run_list': []}
 
-    # Loop over the run files associated with the subject
-    for rec in recordings:
-        if rec[0] == sub_str:
-            # Access the data from that run
-            d = Data.loadData(data_path.as_posix(), rec, modalities=['eeg'])
-            a = Annotation.loadAnnotation(data_path.as_posix(), rec)
+        # Loop over the run files associated with the subject
+        for rec in recordings:
+            if rec[0] == sub_str:
+                # Access the data from that run
+                d = Data.loadData(data_path.as_posix(), rec, modalities=['eeg'])
+                a = Annotation.loadAnnotation(data_path.as_posix(), rec)
 
-            # Using the desired EEG channel
-            if EEG_CHANNEL_1 in d.channels:
-                sub_dict = pull_channel_run(EEG_CHANNEL_1, d, a, sub_dict, rec)
-            elif EEG_CHANNEL_2 in d.channels:
-                sub_dict = pull_channel_run(EEG_CHANNEL_2, d, a, sub_dict, rec)
+                # Using the desired EEG channel
+                if EEG_CHANNEL_1 in d.channels:
+                    sub_dict = pull_channel_run(EEG_CHANNEL_1, d, a, sub_dict, rec)
+                elif EEG_CHANNEL_2 in d.channels:
+                    sub_dict = pull_channel_run(EEG_CHANNEL_2, d, a, sub_dict, rec)
 
-    # Check whether any data was added, before attempting to export data. No data is added in the event none of the runs associated with a patient have desired EEG channel specified in EEG_CHANNEL
-    if sub_dict['run_list']:
-        # Concatenate runs if two or more were extracted:
-        if len(sub_dict['run_list']) >= 2:
-            # Concatenate all of the runs together into a numpy array
-            all_data = np.concatenate([sub_dict[run] for run in sub_dict['run_list']], axis=1)
+        # Check whether any data was added, before attempting to export data. No data is added in the event none of the runs associated with a patient have desired EEG channel specified in EEG_CHANNEL
+        if sub_dict['run_list']:
+            # Concatenate runs if two or more were extracted:
+            if len(sub_dict['run_list']) >= 2:
+                # Concatenate all of the runs together into a numpy array
+                all_data = np.concatenate([sub_dict[run] for run in sub_dict['run_list']], axis=1)
 
-            # Over-write the time row
-            all_data[1, :] = np.arange(all_data.shape[1]) * (1/HZ)
+                # Over-write the time row
+                all_data[1, :] = np.arange(all_data.shape[1]) * (1/HZ)
 
-        # Otherwise, just extract the data if only one run was extracted
-        else:
-            all_data = sub_dict[sub_dict['run_list'][0]]
+            # Otherwise, just extract the data if only one run was extracted
+            else:
+                all_data = sub_dict[sub_dict['run_list'][0]]
 
-        # Transpose, reduce to float32, and export as compressed .csv.gz
-        with gzip.open(f'csvs/{sub_str}.csv.gz', 'wt') as f:
-            np.savetxt(f, all_data.T.astype(np.float32), delimiter=',', header='EEG,seizure', comments='')
+            # Transpose, reduce to float32, and export as compressed .csv.gz
+            with gzip.open(f'csvs/{sub_str}.csv.gz', 'wt') as f:
+                np.savetxt(f, all_data.T.astype(np.float32), delimiter=',', header='EEG,seizure', comments='')
 
 ## Useful lines to copy and paste to interface with the classes
 #rec_data = Data.loadData(data_path.as_posix(), rec, modalities=['eeg'])
