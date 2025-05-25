@@ -176,6 +176,7 @@ def feature(path_to_csvs: str):
         run_indexes = process_run_indexes([int(x) for x in segment_indexes['run_start_indexes'][isub]])
 
         # Process each run, with smoothing, segmentation and feature extraction
+        all_features = []
         for run_index in run_indexes:
             t1 = process_time()
             run_smooth, sz_slice = smooth_run(run_index, eeg, sz)
@@ -183,11 +184,14 @@ def feature(path_to_csvs: str):
             df_features = run_features(run_segmented)
             t2 = process_time()
 
-            # Output as a compressed csv for storage
-            export_csv(df_features, sub)
-            time += t2 - t1
+            if not df_features.empty:
+                all_features.append(df_features)
 
-            # log
+            time += t2 - t1
             print(f"Processed {sub} run {run_index} in {t2-t1:.2f}s")
+
+        # Export all the feature rows into a single csv
+        if all_features:
+            pd.concat(all_features, ignore_index=True).to_csv(f'csvs/features/{sub}.csv.gz', compression='gzip', index=False)
 
     return time

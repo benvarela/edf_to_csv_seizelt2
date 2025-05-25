@@ -1,9 +1,13 @@
 '''
 This file outputs the indexes where new runs start, as concatenated in the compressed csv files that are output by edftocsv
-The output json file is to be used after filtering, and before feature extraction so that segmenting can occur correctly.
+The output json file is used in features.py such that features can be extracted in each run correctly, without
+trying to segment over over the boundary of two runs.
 
 The json file has the same structure as the variable seg_sub: seg_sub = {'subject': list(), 'run_start_indexes': list()}
 Note that the 'run_start_indexes' are stored in such a way that each index is the index immediately after a run ends, INCLUDING the final run
+
+INPUTS: SeizelT2 data set. Input the path with path_to_datset
+OUTPUTS: json file called segments.json. 
 '''
 
 from importlib import resources as impresources
